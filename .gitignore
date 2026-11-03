@@ -1,0 +1,8 @@
+.DS_Store
+__pycache__/
+*.pyc
+node_modules/
+tools/pipeline/raw/
+tools/pipeline/data/*.json
+tools/pipeline/data/*.npz
+!tools/pipeline/data/bundle.json

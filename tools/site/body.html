@@ -1,0 +1,55 @@
+<div id="app">
+  <div id="stage">
+    <canvas id="gl" aria-hidden="true"></canvas>
+    <canvas id="ov" role="img" aria-label="可拖动的地球仪。光点代表人口分布，亮面是此刻的白昼。把光标移到城市上查看详情，也可以用城市搜索框。"></canvas>
+    <p id="nogl" hidden>这台设备无法显示三维地球。下面的时间控件、城市搜索和数据卡片仍然可以使用。</p>
+  </div>
+  <header id="head">
+    <h1>80亿人的春夏秋冬<br>与24小时</h1>
+    <p>2026 年 · 每个光点约代表 10 万人<span class="tag" data-k="画" title="光点位置按人口格网和城市人口分配，在格网内随机散布">画</span></p>
+  </header>
+  <section id="now" aria-label="此刻的人类"></section>
+  <div id="top">
+    <div id="modes" role="group" aria-label="地球仪主题">
+      <button id="mDay" type="button" aria-pressed="true">昼夜</button>
+      <button id="mAct" type="button" aria-pressed="false">在做什么</button>
+      <button id="mLen" type="button" aria-pressed="false">昼长</button>
+    </div>
+    <input id="q" list="cityList" type="search" placeholder="搜索城市" aria-label="搜索城市" autocomplete="off">
+    <datalist id="cityList"></datalist>
+  </div>
+  <aside id="card" aria-label="城市详情">
+    <div id="cHint" hidden><h2>把光标移到城市上</h2><p>可以看到这座城市的人此刻分成几类，各在做什么。点一下可以固定卡片，时间轴也会换成当地时间。</p><div id="cQuick" class="ctl"></div></div>
+    <div id="cBody">
+    <div id="cHead"></div>
+    <div class="sect" id="gTitle"></div>
+    <div id="cGroups"></div>
+    <div class="sect"><span id="cTitle"></span><span class="tag" data-k="估" title="由人群结构和作息模型估算，不是实测">估</span></div>
+    <div class="bar" id="cBar" role="img" aria-label="城市活动比例"></div>
+    <div class="rows" id="cRows"></div>
+    <div class="sect"><span>这一天的节奏 <b id="ribDay"></b></span><span>当地时间</span></div>
+    <div id="ribbonW"><canvas id="ribbon" role="img" aria-label="这座城市一天 24 小时的活动比例堆叠图"></canvas>
+      <div id="ribAxis"><span>0</span><span>6</span><span>12</span><span>18</span><span>24 时</span></div>
+      <div id="ribTip"></div></div>
+    </div>
+  </aside>
+  <footer id="dock">
+    <div id="when">
+      <div id="clock"></div>
+      <div id="zoneL"></div>
+      <div class="ctl">
+        <select id="sMonth" aria-label="月"></select>
+        <select id="sDay" aria-label="日"></select>
+        <input id="sTime" type="time" step="300" aria-label="时间">
+        <button id="bNow" type="button">现在</button>
+      </div>
+      <div class="ctl" role="group" aria-label="季节和播放">
+        <button id="j0" type="button">春分</button><button id="j1" type="button">夏至</button><button id="j2" type="button">秋分</button><button id="j3" type="button">冬至</button>
+        <button id="pDay" type="button" aria-pressed="false">播放一天</button><button id="pYear" type="button" aria-pressed="false">播放一年</button>
+      </div>
+      <div id="chartCap"></div>
+    </div>
+    <div id="chartW"><canvas id="chart" tabindex="0" role="slider" aria-label="日期和时间。方向键左右改日期，上下改时间。" aria-valuetext=""></canvas><div id="chartTip" hidden></div></div>
+  </footer>
+  <dialog id="notes" aria-label="数据说明"></dialog>
+</div>

@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>80亿人的春夏秋冬与24小时</title>
+<meta name="description" content="一颗可以拖动的地球仪：选一个日期和时刻，看全世界 441 座城市的人此刻分成几类、各在做什么。数据、天文计算、模型估算和动画分开标注。">
+<meta property="og:title" content="80亿人的春夏秋冬与24小时">
+<meta property="og:description" content="选一个日期和时刻，看全世界 441 座城市的人此刻分成几类、各在做什么。">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://wanglu2016.github.io/80yi-chunxiaqiudong/">
+<meta property="og:image" content="https://wanglu2016.github.io/80yi-chunxiaqiudong/assets/og.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#060a14">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="assets/fonts.css">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<div id="app">
+  <div id="stage">
+    <canvas id="gl" aria-hidden="true"></canvas>
+    <canvas id="ov" role="img" aria-label="可拖动的地球仪。光点代表人口分布，亮面是此刻的白昼。把光标移到城市上查看详情，也可以用城市搜索框。"></canvas>
+    <p id="nogl" hidden>这台设备无法显示三维地球。下面的时间控件、城市搜索和数据卡片仍然可以使用。</p>
+  </div>
+  <header id="head">
+    <h1>80亿人的春夏秋冬<br>与24小时</h1>
+    <p>2026 年 · 每个光点约代表 10 万人<span class="tag" data-k="画" title="光点位置按人口格网和城市人口分配，在格网内随机散布">画</span></p>
+  </header>
+  <section id="now" aria-label="此刻的人类"></section>
+  <div id="top">
+    <div id="modes" role="group" aria-label="地球仪主题">
+      <button id="mDay" type="button" aria-pressed="true">昼夜</button>
+      <button id="mAct" type="button" aria-pressed="false">在做什么</button>
+      <button id="mLen" type="button" aria-pressed="false">昼长</button>
+    </div>
+    <input id="q" list="cityList" type="search" placeholder="搜索城市" aria-label="搜索城市" autocomplete="off">
+    <datalist id="cityList"></datalist>
+  </div>
+  <aside id="card" aria-label="城市详情">
+    <div id="cHint" hidden><h2>把光标移到城市上</h2><p>可以看到这座城市的人此刻分成几类，各在做什么。点一下可以固定卡片，时间轴也会换成当地时间。</p><div id="cQuick" class="ctl"></div></div>
+    <div id="cBody">
+    <div id="cHead"></div>
+    <div class="sect" id="gTitle"></div>
+    <div id="cGroups"></div>
+    <div class="sect"><span id="cTitle"></span><span class="tag" data-k="估" title="由人群结构和作息模型估算，不是实测">估</span></div>
+    <div class="bar" id="cBar" role="img" aria-label="城市活动比例"></div>
+    <div class="rows" id="cRows"></div>
+    <div class="sect"><span>这一天的节奏 <b id="ribDay"></b></span><span>当地时间</span></div>
+    <div id="ribbonW"><canvas id="ribbon" role="img" aria-label="这座城市一天 24 小时的活动比例堆叠图"></canvas>
+      <div id="ribAxis"><span>0</span><span>6</span><span>12</span><span>18</span><span>24 时</span></div>
+      <div id="ribTip"></div></div>
+    </div>
+  </aside>
+  <footer id="dock">
+    <div id="when">
+      <div id="clock"></div>
+      <div id="zoneL"></div>
+      <div class="ctl">
+        <select id="sMonth" aria-label="月"></select>
+        <select id="sDay" aria-label="日"></select>
+        <input id="sTime" type="time" step="300" aria-label="时间">
+        <button id="bNow" type="button">现在</button>
+      </div>
+      <div class="ctl" role="group" aria-label="季节和播放">
+        <button id="j0" type="button">春分</button><button id="j1" type="button">夏至</button><button id="j2" type="button">秋分</button><button id="j3" type="button">冬至</button>
+        <button id="pDay" type="button" aria-pressed="false">播放一天</button><button id="pYear" type="button" aria-pressed="false">播放一年</button>
+      </div>
+      <div id="chartCap"></div>
+    </div>
+    <div id="chartW"><canvas id="chart" tabindex="0" role="slider" aria-label="日期和时间。方向键左右改日期，上下改时间。" aria-valuetext=""></canvas><div id="chartTip" hidden></div></div>
+  </footer>
+  <dialog id="notes" aria-label="数据说明"></dialog>
+</div>
+<template id="notesT"><button id="closeNotes" type="button">关闭</button>
+<div class="nw">
+<h2>这张地球仪里，什么是真的，什么是估的</h2>
+<p>页面里每个数字旁边都有一个小标记。同一屏里混着四种东西，读的时候要分开看。</p>
+<div class="tw"><table>
+<tr><th>标记</th><th>是什么</th><th>例子</th><th>可信程度</th></tr>
+<tr><td><span class="tag" data-k="实">实</span></td><td>统计或观测数据</td><td>世界人口、城市人口、年龄结构、时区规则、公共假期、常年气温</td><td>有明确来源，但各有口径和年份</td></tr>
+<tr><td><span class="tag" data-k="算">算</span></td><td>天文公式算出</td><td>太阳直射点、日出日落、昼长、太阳高度</td><td>和天文库对比，日出日落误差约 1 分钟内</td></tr>
+<tr><td><span class="tag" data-k="估">估</span></td><td>模型估算</td><td>白昼人口、八类人的规模、各类人此刻在做什么</td><td>只能看大致比例，城市之间的细小差别没有意义</td></tr>
+<tr><td><span class="tag" data-k="画">画</span></td><td>动画表现</td><td>光点的具体位置、光点颜色和明暗</td><td>不代表真实个人</td></tr>
+</table></div>
+<p>光点变暗只说明太阳落山。那里的人可能在吃晚饭、加班或看电视。在“在做什么”主题下，每个光点按所在地的估算比例抽一种活动，用来显示比例，不是在追踪任何人。这里没有任何实时用户数据。</p>
+
+<h3>八类人怎么算</h3>
+<p>先用联合国 2026 年预测的全国年龄结构，分出 0–5 岁、6–17 岁、18–24 岁、25–64 岁和 65 岁以上。再用世界银行整理的就业率、15–64 岁劳动参与率、入学率和弱势就业比例，拆成婴幼儿、中小学生、大学生、固定班上班族、轮班工作者、个体与灵活就业、在家的成年人、退休老人。</p>
+<ul>
+<li>城市用的是所在国的结构，没有单独的城市年龄数据，所以东京和秋田在模型里年龄结构相同。</li>
+<li>个体与灵活就业的比例，用“弱势就业”扣掉农业后估算，这样更接近城市。</li>
+<li>雇员中 16% 算作轮班，取自美国劳工统计局 2017–2018 年非白天班的比例，各国通用。这是一个粗略假设。</li>
+</ul>
+
+<h3>一天怎么排</h3>
+<p>每类人有几种典型的一天，比如工作日、休息日、早中晚三种轮班。每个环节的开始时间都有分散度，所以比例是平滑变化的。起床、就寝、上下班时间，美国、加拿大、西班牙、意大利、法国、英国、爱尔兰、丹麦来自时间利用调查，其他欧洲国家的就寝时间来自欧洲统一调查。其余地区按 18 种作息类型设定，是我根据公开资料做的假设。</p>
+<p>通勤单程按城市大小和地区取 20 到 50 分钟左右。午饭、晚饭、上学时间同样是地区假设。</p>
+
+<h3>季节怎样进入模型</h3>
+<ul>
+<li>昼夜：太阳位置逐分钟计算，夏令时按 2026 年规则切换。</li>
+<li>睡眠：夜越长，模型里睡得越久。冬夏差约 30–60 分钟，依据手机通话间隙研究的量级。</li>
+<li>午休：有午休习惯的地区，天气越热午休比例越高。</li>
+<li>学校放假：按地区近似，不是每所学校的真实校历。</li>
+<li>公共假期：按 2026 年各国法定假期。中国含调休上班日。伊斯兰节日日期为预估，实际以当地宣布为准。</li>
+<li>斋月：穆斯林人口占多数的国家，一部分成年人切换到斋月作息，开斋时间跟随当地日落。比例是假设值。</li>
+</ul>
+
+<h3>模型和调查差多少</h3>
+<p>下面是模型算出的平均每天小时数，和时间利用调查的对比。调查的年份、年龄范围和分类都不完全相同，这张表只用来判断量级。</p>
+<div class="tw"><table><tr><th>对象</th><th>活动</th><th class="num">模型</th><th class="num">调查</th><th>调查来源</th></tr><tr><td>全球，全年龄</td><td>睡觉和躺床</td><td class="num">9.0</td><td class="num">9.1</td><td>The global human day</td></tr><tr><td>全球，全年龄</td><td>工作</td><td class="num">2.6</td><td class="num">2.6</td><td>The global human day</td></tr><tr><td>全球，全年龄</td><td>上学学习</td><td class="num">1.1</td><td class="num">1.1</td><td>The global human day</td></tr><tr><td>美国，15 岁以上</td><td>睡觉</td><td class="num">8.7</td><td class="num">9.0</td><td>ATUS 2025</td></tr><tr><td>美国，15 岁以上</td><td>休闲</td><td class="num">6.1</td><td class="num">5.2</td><td>ATUS 2025</td></tr><tr><td>中国，成年人</td><td>睡觉+吃饭洗漱</td><td class="num">11.2</td><td class="num">11.9</td><td>2018 调查，生理必需活动</td></tr><tr><td>中国，成年人</td><td>工作</td><td class="num">3.7</td><td class="num">4.4</td><td>2018 调查</td></tr><tr><td>中国，成年人</td><td>家务照料</td><td class="num">2.5</td><td class="num">2.7</td><td>2018 调查，无酬劳动</td></tr><tr><td>日本，15–64 岁</td><td>工作、学习和通勤</td><td class="num">6.1</td><td class="num">6.1</td><td>OECD / JILPT，2021</td></tr><tr><td>韩国，15–64 岁</td><td>工作、学习和通勤</td><td class="num">5.6</td><td class="num">5.7</td><td>OECD / JILPT，2014</td></tr><tr><td>德国，15–64 岁</td><td>工作、学习和通勤</td><td class="num">4.9</td><td class="num">4.1</td><td>OECD / JILPT，2012/13</td></tr><tr><td>法国，15–64 岁</td><td>工作、学习和通勤</td><td class="num">4.8</td><td class="num">3.4</td><td>OECD / JILPT，2009/10</td></tr></table></div>
+<p>模型的休闲时间普遍偏多约 1 小时，部分原因是调查里单列的个人护理、等待和其他杂项，在模型里归到了休闲。</p>
+
+<h3>城市怎么选</h3>
+<p>共 441 座城市，覆盖 199 个国家和地区。联合国 2025 年列出的 33 座千万人口城市全部入选，人口 500 万以上的 49 座也全部入选，其他城市按国家人口选代表。</p>
+<p>分线按页面显示的人口：一线 1000 万以上，二线 300–1000 万，三线 100–300 万，四线 100 万以下。这是本页为了全球比较用的规则，不同于中国常说的城市分线。</p>
+<p>口径要注意。联合国这版按连续的高密度建成区统计，所以雅加达有 4191 万，而重庆只有 707 万，都和行政辖区人口差别很大。没有进入联合国 500 万以上名单的城市，用 Natural Earth 汇编的都市区人口，年份不一，部分明显偏旧。两种口径的数字不宜直接比较。</p>
+
+<h3>这张图不能回答什么</h3>
+<ul>
+<li>模型描述常态的一天。战争、灾害、停电、大型活动都不在其中，所以它对正在经历危机的城市是错的。</li>
+<li>农村人口、农业季节和流动人口的节奏没有细分。全球统计把所有人都放进同一套模型。</li>
+<li>世界人口取联合国 2024 版预测。人口网格只用来分配空间位置，总量按各国 2026 年人口校正。</li>
+<li>87 座城市附近没有合适的气温数据，卡片上会直接说明。其他城市的气温是常年月均值，不是当天天气。</li>
+</ul>
+
+<h3>数据来源</h3>
+<ul>
+<li><a href="https://population.un.org/wpp/" target="_blank" rel="noopener">联合国《世界人口展望 2024》</a>，经 <a href="https://github.com/PPgp/wpp2024" target="_blank" rel="noopener">wpp2024 数据包</a>取 2026 年分年龄人口</li>
+<li><a href="https://www.un.org/development/desa/pd/sites/www.un.org.development.desa.pd/files/undesa_pd_2025_data-booklet_world_cities_in_2025.pdf" target="_blank" rel="noopener">联合国《世界城市 2025》数据手册</a>（World Urbanization Prospects 2025）</li>
+<li><a href="https://www.naturalearthdata.com/" target="_blank" rel="noopener">Natural Earth</a> 城市、国界和陆地，<a href="https://www.geonames.org/" target="_blank" rel="noopener">GeoNames</a> 城镇</li>
+<li><a href="https://github.com/apache/echarts-examples" target="_blank" rel="noopener">ECharts GL 示例</a>附带的 0.5° 人口密度网格。原始年份未标注，这里只用相对分布</li>
+<li><a href="https://github.com/open-numbers/ddf--open_numbers--world_development_indicators" target="_blank" rel="noopener">世界发展指标</a>（Gapminder 整理版）：就业、劳动参与、弱势就业、入学率</li>
+<li><a href="https://arxiv.org/pdf/1707.09803" target="_blank" rel="noopener">Martín-Olalla 2018</a>：各国起床、就寝、上下班时间</li>
+<li><a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC5587566" target="_blank" rel="noopener">Monsivais 等 2017</a>：季节和纬度对休息时段的影响</li>
+<li><a href="https://www.bls.gov/news.release/atus.nr0.htm" target="_blank" rel="noopener">美国时间利用调查 2025</a>，<a href="https://www.jil.go.jp/kokunai/statistics/databook/2026/09/d2026_9T-10.pdf" target="_blank" rel="noopener">JILPT 整理的 OECD 时间利用数据</a>，<a href="https://www.bjreview.com/Current_Issue/Editor_Choice/201902/t20190218_800156831.html" target="_blank" rel="noopener">中国 2018 年时间利用调查</a>，<a href="https://cordis.europa.eu/article/id/446670-what-do-8-billion-people-do-on-an-average-day" target="_blank" rel="noopener">The global human day</a></li>
+<li><a href="https://www.bls.gov/news.release/archives/flex2_09242019.htm" target="_blank" rel="noopener">美国劳工统计局 2017–2018 工作时间安排</a></li>
+<li><a href="https://en.wikipedia.org/wiki/List_of_cities_by_average_temperature" target="_blank" rel="noopener">维基百科城市平均气温表</a>和 <a href="https://climatestotravel.com/temperatures/united-states" target="_blank" rel="noopener">Climates to Travel</a>：常年月均气温</li>
+<li><a href="https://pypi.org/project/holidays/" target="_blank" rel="noopener">holidays</a>：2026 年公共假期；<a href="https://www.iana.org/time-zones" target="_blank" rel="noopener">IANA 时区库</a>；<a href="https://pypi.org/project/timezonefinder/" target="_blank" rel="noopener">timezonefinder</a></li>
+</ul>
+</div>
+</template>
+<script src="assets/data.js"></script>
+<script src="assets/model.js"></script>
+<script src="assets/app.js"></script>
+</body>
+</html>
