@@ -77,7 +77,7 @@ const VS_D=`#version 300 es
 in vec3 p;in float z;in float u;uniform mat3 uRot;uniform vec2 uC;uniform float uR;uniform vec2 uRes;uniform vec3 uSun;uniform float uSize;uniform int uMode;uniform float uTan;uniform highp sampler2D uZ;uniform vec3 uPal[7];out vec4 vc;
 void main(){vec3 q=uRot*p;if(q.z<-.01){gl_Position=vec4(2.,2.,2.,1.);gl_PointSize=0.;return;}
  vec2 s=uC+q.xy*uR;gl_Position=vec4(s/uRes*2.-1.,0.,1.);gl_PointSize=uSize;float edge=smoothstep(-.01,.14,q.z);vec3 c;float a;
- if(uMode==0){float h=dot(p,uSun);vec3 ni=vec3(1.,.73,.36);vec3 tw=vec3(1.,.5,.42);vec3 da=vec3(.95,.97,1.);c=mix(ni,tw,smoothstep(-.12,-.03,h));c=mix(c,da,smoothstep(-.02,.1,h));a=mix(.5,.2,smoothstep(-.02,.12,h));}
+ if(uMode==0){float h=dot(p,uSun);float lh=texelFetch(uZ,ivec2(int(z+.5),2),0).r*24.;float late=lh>=12.?smoothstep(22.5,23.5,lh):1.-smoothstep(4.5,5.5,lh);vec3 ni=vec3(1.,.73,.36);vec3 tw=vec3(1.,.5,.42);vec3 da=vec3(.95,.97,1.);c=mix(ni,tw,smoothstep(-.12,-.03,h)*(1.-late));c=mix(c,da,max(late,smoothstep(-.02,.1,h)));a=mix(mix(.5,.36,late),.2,smoothstep(-.02,.12,h));}
  else if(uMode==1){int zi=int(z+.5);vec4 a0=texelFetch(uZ,ivec2(zi,0),0);vec4 a1=texelFetch(uZ,ivec2(zi,1),0);int k=6;
   if(u<a0.r)k=0;else if(u<a0.g)k=1;else if(u<a0.b)k=2;else if(u<a0.a)k=3;else if(u<a1.r)k=4;else if(u<a1.g)k=5;c=uPal[k]*1.35;a=k==0?.34:.86;}
  else{float t=clamp(-p.y/max(.0001,sqrt(1.-p.y*p.y))*uTan,-1.,1.);float len=acos(t)/3.14159265;c=len<.5?mix(vec3(.25,.53,.98),vec3(.8,.82,.86),smoothstep(.3,.5,len)):mix(vec3(.8,.82,.86),vec3(1.,.66,.14),smoothstep(.5,.66,len));a=.8;}
@@ -98,7 +98,7 @@ function initGL(){
  G.vd=gl.createVertexArray();gl.bindVertexArray(G.vd);
  const put=(n,arr,sz)=>{const q=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,q);gl.bufferData(gl.ARRAY_BUFFER,arr,gl.STATIC_DRAW);const l=gl.getAttribLocation(G.d,n);gl.enableVertexAttribArray(l);gl.vertexAttribPointer(l,sz,gl.FLOAT,false,0,0)};
  put('p',pos,3);put('z',aZone,1);put('u',aU,1);gl.bindVertexArray(null);
- G.zt=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,G.zt);G.zd=new Uint8Array(B.Z.length*2*4);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA8,B.Z.length,2,0,gl.RGBA,gl.UNSIGNED_BYTE,G.zd);[gl.TEXTURE_MIN_FILTER,gl.TEXTURE_MAG_FILTER].forEach(f=>gl.texParameteri(gl.TEXTURE_2D,f,gl.NEAREST));gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
+ G.zt=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,G.zt);G.zd=new Uint8Array(B.Z.length*3*4);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA8,B.Z.length,3,0,gl.RGBA,gl.UNSIGNED_BYTE,G.zd);[gl.TEXTURE_MIN_FILTER,gl.TEXTURE_MAG_FILTER].forEach(f=>gl.texParameteri(gl.TEXTURE_2D,f,gl.NEAREST));gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
  G.lt=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,G.lt);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA8,1,1,0,gl.RGBA,gl.UNSIGNED_BYTE,new Uint8Array([0,0,0,255]));
  const im=new Image();im.onload=()=>{gl.bindTexture(gl.TEXTURE_2D,G.lt);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA8,gl.RGBA,gl.UNSIGNED_BYTE,im);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.REPEAT);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);dirty.view=true};im.src='data:image/png;base64,'+B.land;
  gl.useProgram(G.d);gl.uniform3fv(G.du.uPal,new Float32Array(ACOL.flatMap(hex3)));
@@ -135,7 +135,7 @@ function drawOverlay(M,sn){ov.setTransform(DPR,0,0,DPR,0,0);ov.clearRect(0,0,W,H
  const put=(c,p,strong)=>{const tw=ov.measureText(c.z).width,x=p.sx+6,y=p.sy;if(!strong&&(inBox(x-2,y-8,tw+4,16)||x+tw>W-4))return;boxes.push([x-2,y-8,tw+4,16]);ov.globalAlpha=strong?1:fade(p.z);ov.lineWidth=3;ov.strokeStyle='rgba(6,10,20,.85)';ov.strokeText(c.z,x,y);ov.fillStyle=strong?'#ffc861':'#ece7da';ov.fillText(c.z,x,y)};
  const cur=S.hover||S.pin;
  if(cur){const p=project(cur,M);if(p.z>0){ov.globalAlpha=1;ov.strokeStyle='#ffc861';ov.lineWidth=1.4;ov.beginPath();ov.arc(p.sx,p.sy,9,0,6.3);ov.stroke();ov.font='500 13px "Noto Sans SC","PingFang SC","Microsoft YaHei","Noto Sans CJK SC",sans-serif';put(cur,p,true);ov.font='12px "Noto Sans SC","PingFang SC","Microsoft YaHei","Noto Sans CJK SC",sans-serif'}}
- const maxT=S.zoom>2.2?3:S.zoom>1.4?2:1;
+ const maxT=S.zoom>4?4:S.zoom>2.2?3:S.zoom>1.4?2:1;
  for(const c of LABEL_ORDER){if(c.tier>maxT)break;if(c===cur)continue;const p=pts.find(q=>q[0]===c);if(p)put(c,p[1],false)}
  ov.globalAlpha=1;const ss={vx:sn.v[0],vy:sn.v[1],vz:sn.v[2]},q=project(ss,M);
  if(q.z>0){ov.strokeStyle='#ffc861';ov.lineWidth=1.2;ov.beginPath();ov.arc(q.sx,q.sy,7,0,6.3);ov.stroke();for(let i=0;i<8;i++){const a=i*Math.PI/4;ov.beginPath();ov.moveTo(q.sx+Math.cos(a)*9,q.sy+Math.sin(a)*9);ov.lineTo(q.sx+Math.cos(a)*12.5,q.sy+Math.sin(a)*12.5);ov.stroke()}}
@@ -149,9 +149,9 @@ function recomputeWorld(){const ms=S.ms,{dec,eot}=sunVec(ms),utc=((ms%DAY)+DAY)%
  const sum=d+t+n;stat.day=d/sum*B.world;stat.tw=t/sum*B.world;stat.night=n/sum*B.world;
  stat.act.fill(0);let tot=0;const zd=G.zd;
  for(let z=0;z<B.Z.length;z++){const Zr=B.Z[z],cn=B.C[Zr[0]],tz=B.T[Zr[1]];const r=evalPlace(B,cn,tz,zLa[z],zLo[z],ms,0,null,'z'+z,false);const w=zW[z];tot+=w;let c=0;
-  for(let k=0;k<7;k++){stat.act[k]+=r.act[k]*w;c+=r.act[k];if(zd&&k<6){const v=Math.min(255,Math.round(c*255));const row=k<4?0:1,col=k<4?k:k-4;zd[(row*B.Z.length+z)*4+col]=v}}}
+  for(let k=0;k<7;k++){stat.act[k]+=r.act[k]*w;c+=r.act[k];if(zd&&k<6){const v=Math.min(255,Math.round(c*255));const row=k<4?0:1,col=k<4?k:k-4;zd[(row*B.Z.length+z)*4+col]=v}}if(zd)zd[(2*B.Z.length+z)*4]=Math.min(255,Math.round(r.lp.h/24*255))}
  for(let k=0;k<7;k++)stat.act[k]/=tot;
- if(gl&&G.zt){gl.activeTexture(gl.TEXTURE1);gl.bindTexture(gl.TEXTURE_2D,G.zt);gl.texSubImage2D(gl.TEXTURE_2D,0,0,0,B.Z.length,2,gl.RGBA,gl.UNSIGNED_BYTE,zd)}}
+ if(gl&&G.zt){gl.activeTexture(gl.TEXTURE1);gl.bindTexture(gl.TEXTURE_2D,G.zt);gl.texSubImage2D(gl.TEXTURE_2D,0,0,0,B.Z.length,3,gl.RGBA,gl.UNSIGNED_BYTE,zd)}}
 function barHTML(vals){return vals.map((v,k)=>`<i style="width:${(v*100).toFixed(2)}%;background:${ACOL[k]}" title="${AZ[k]} ${(v*100).toFixed(0)}%"></i>`).join('')}
 function renderWorld(){const dv=stat.day,tv=stat.tw,nv=stat.night,sn=sunDir(S.ms),lat=sn.dec;
  const ns=lat>=0?'北纬':'南纬';const a=stat.act;
@@ -162,7 +162,7 @@ function renderWorld(){const dv=stat.day,tv=stat.tw,nv=stat.night,sn=sunDir(S.ms
  <div class="block eyebrow">分别在做什么${tag('估')}</div>
  <div class="bar" role="img" aria-label="全球活动比例">${barHTML([...a])}</div>
  <div class="rows">${[...a].map((v,k)=>`<i style="background:${ACOL[k]}"></i><span>${AZ[k]}</span><span class="v">${(v*B.world/1e8).toFixed(1)} 亿</span><span class="p">${(v*100).toFixed(0)}%</span>`).join('')}</div>
- <div class="warn">太阳直射${ns} ${Math.abs(lat).toFixed(1)}°${tag('算')}。${S.mode==='act'?'这个主题下，每个光点按所在地的估算比例抽一种活动，颜色不代表真实个人。':S.mode==='len'?'这个主题下，光点颜色只表示所在纬度今天的昼长：蓝色短，灰色约 12 小时，金色长。':'光点颜色只表示太阳位置。光点变暗不代表那里的人睡着了。'}
+ <div class="warn">太阳直射${ns} ${Math.abs(lat).toFixed(1)}°${tag('算')}。${S.mode==='act'?'这个主题下，每个光点按所在地的估算比例抽一种活动，颜色不代表真实个人。':S.mode==='len'?'这个主题下，光点颜色只表示所在纬度今天的昼长：蓝色短，灰色约 12 小时，金色长。':`光点颜色按太阳位置和当地钟点变化${tag('画')}：白天白色；天黑后到 23 点暖黄，23 点到凌晨 5 点转白，示意多数人已睡、主要剩路灯。这是示意，不是灯光观测，也不能说明哪里的人睡着了。`}
  <div class="key"><span>${tag('实')}统计数据</span><span>${tag('算')}天文计算</span><span>${tag('估')}模型估算</span><span>${tag('画')}动画表现</span></div>
  <div class="more"><button id="linkNotes" type="button">数据来源与模型说明</button><a href="https://wanglu2016.github.io/80yi-chunxiaqiudong/video.html">视频讲解</a><a href="https://github.com/wanglu2016/80yi-chunxiaqiudong">GitHub</a></div></div>`;
  $('linkNotes').onclick=()=>$('notes').showModal()}
@@ -267,20 +267,53 @@ const list=$('cityList');CITIES.forEach(c=>{const o=document.createElement('opti
 $('q').addEventListener('change',e=>{const v=e.target.value.trim(),c=CITIES.find(x=>`${x.z} · ${x.cn.z}`===v)||CITIES.find(x=>x.z===v)||CITIES.find(x=>x.z.includes(v)||x.e.toLowerCase()===v.toLowerCase());if(c){pin(c);fly(c);e.target.value='';e.target.blur()}});
 function pin(c){S.pin=c;S.hover=null;heatKey='';dirty.time=true;ribKey='';}
 let tween=null;
-function fly(c){const lon1=c.lo,lat1=Math.max(-55,Math.min(62,c.la));if(reduced){S.lon0=lon1;S.lat0=lat1;dirty.view=true;return}const a={lon:S.lon0,lat:S.lat0},t0=performance.now(),dl=((lon1-a.lon+540)%360)-180;tween=t=>{const u=Math.min(1,(t-t0)/700),e=u*u*(3-2*u);S.lon0=a.lon+dl*e;S.lat0=a.lat+(lat1-a.lat)*e;dirty.view=true;if(u>=1)tween=null}}
+function fly(c){inert=null;const lon1=c.lo,lat1=Math.max(-55,Math.min(62,c.la));if(reduced){S.lon0=lon1;S.lat0=lat1;dirty.view=true;return}const a={lon:S.lon0,lat:S.lat0},t0=performance.now(),dl=((lon1-a.lon+540)%360)-180;tween=t=>{const u=Math.min(1,(t-t0)/700),e=u*u*(3-2*u);S.lon0=a.lon+dl*e;S.lat0=a.lat+(lat1-a.lat)*e;dirty.view=true;if(u>=1)tween=null}}
 
 {const eg=['Tokyo','New York','London','Delhi','São Paulo','Lagos','Cairo','Moscow'];$('cQuick').innerHTML=eg.map(e=>{const c=CITIES.find(x=>x.e===e);return`<button type="button" data-i="${c.i}">${c.z}</button>`}).join('');$('cQuick').addEventListener('click',e=>{const i=e.target.dataset.i;if(i!==undefined){pin(CITIES[+i]);fly(CITIES[+i])}})}
 /* ---------- pointer on the globe ---------- */
-let drag=null,lastTap=0;
+let drag=null,lastTap=0,inert=null,pinch=null;const ptrs=new Map();
 function pick(px,py){const M=rotMat();let best=null,bd=1e9;for(const c of CITIES){const p=project(c,M);if(p.z<.05)continue;const d=Math.hypot(p.sx-px,p.sy-py)-(4-c.tier)*1.2;if(d<bd){bd=d;best=c}}return bd<13?best:null}
 function evp(e){const r=ovc.getBoundingClientRect();return[e.clientX-r.left,e.clientY-r.top]}
-ovc.addEventListener('pointerdown',e=>{const[x,y]=evp(e);drag={x,y,lon:S.lon0,lat:S.lat0,moved:0,id:e.pointerId};try{ovc.setPointerCapture(e.pointerId)}catch(_){}ovc.classList.add('drag')});
-ovc.addEventListener('pointermove',e=>{const[x,y]=evp(e);if(drag){const dx=x-drag.x,dy=y-drag.y;drag.moved=Math.max(drag.moved,Math.abs(dx)+Math.abs(dy));const r=radius()*RAD;S.lon0=drag.lon-dx/r;S.lat0=Math.max(-80,Math.min(80,drag.lat+dy/r));dirty.view=true}
- else if(e.pointerType==='mouse'){const c=pick(x,y);if(c!==S.hover){S.hover=c;ovc.classList.toggle('hit',!!c);dirty.card=true;dirty.view=true}}});
-function endDrag(e){if(!drag)return;const[x,y]=evp(e),moved=drag.moved;drag=null;ovc.classList.remove('drag');if(moved<6){const c=pick(x,y);if(c){pin(S.pin===c?null:c);if(e.pointerType!=='mouse')fly(c)}else if(e.pointerType!=='mouse'&&S.pin){/* keep */}}}
-ovc.addEventListener('pointerup',endDrag);ovc.addEventListener('pointercancel',()=>{drag=null;ovc.classList.remove('drag')});
+const clampZ=z=>Math.max(1,Math.min(10,z)),clampLat=a=>Math.max(-80,Math.min(80,a));
+/* screen point -> view vector on the globe (edge: clamp to the rim) */
+function viewAt(px,py,edge){const r=radius();let qx=(px-CX)/r,qy=(CY-py)/r,d=qx*qx+qy*qy;if(d>=1){if(!edge)return null;const k=.999/Math.sqrt(d);qx*=k;qy*=k;d=.998}return[qx,qy,Math.sqrt(1-d)]}
+function toWorld(q){const M=rotMat();return[M[0]*q[0]+M[3]*q[1]+M[6]*q[2],M[1]*q[0]+M[4]*q[1]+M[7]*q[2],M[2]*q[0]+M[5]*q[1]+M[8]*q[2]]}
+/* the view centre that puts world point P at view vector q (closed form; nearest of two solutions) */
+function solveView(P,q){const cp=Math.hypot(P[0],P[2]),lp=Math.atan2(P[0],P[2]),d0=Math.asin(Math.max(-1,Math.min(1,q[0]/Math.max(cp,1e-6))));let best=null;
+ for(const d of[d0,Math.PI-d0]){const la=((((Math.atan2(P[1],cp*Math.cos(d))-Math.atan2(q[1],q[2]))/RAD)+540)%360)-180,lo=((((lp-d)/RAD)+540)%360)-180;if(Math.abs(la)>86)continue;
+  const cost=Math.abs(((lo-S.lon0+540)%360)-180)+Math.abs(la-S.lat0);if(!best||cost<best[2])best=[lo,la,cost]}return best}
+function grab(P,px,py){const q=viewAt(px,py,true),s=q&&solveView(P,q);if(!s)return false;S.lon0=s[0];S.lat0=clampLat(s[1]);dirty.view=true;return true}
+function zoomAt(px,py,f){const q=viewAt(px,py),P=q&&toWorld(q);S.zoom=clampZ(S.zoom*f);if(P&&viewAt(px,py))grab(P,px,py);dirty.view=true}
+function zoomAnim(px,py,f){inert=null;if(reduced){zoomAt(px,py,f);return}const z0=S.zoom,z1=clampZ(z0*f),t0=performance.now();tween=t=>{const u=Math.min(1,(t-t0)/320),e=u*u*(3-2*u);zoomAt(px,py,z0*Math.pow(z1/z0,e)/S.zoom);if(u>=1)tween=null}}
+function track(){const h=drag.hist,t=performance.now();h.push([t,S.lon0,S.lat0]);while(h.length>2&&t-h[0][0]>110)h.shift()}
+function startDrag(x,y){const q=viewAt(x,y);drag={x,y,lon:S.lon0,lat:S.lat0,moved:0,P:q?toWorld(q):null,hist:[]};track()}
+function pinchMid(){const v=[...ptrs.values()];return{x:(v[0][0]+v[1][0])/2,y:(v[0][1]+v[1][1])/2,d:Math.hypot(v[0][0]-v[1][0],v[0][1]-v[1][1])}}
+ovc.addEventListener('pointerdown',e=>{const[x,y]=evp(e);ptrs.set(e.pointerId,[x,y]);inert=null;tween=null;try{ovc.setPointerCapture(e.pointerId)}catch(_){}
+ if(ptrs.size===1){startDrag(x,y);ovc.classList.add('drag')}
+ else if(ptrs.size===2){const m=pinchMid(),q=viewAt(m.x,m.y);pinch={d0:Math.max(10,m.d),z0:S.zoom,P:q?toWorld(q):null};if(drag)drag.moved=99}});
+ovc.addEventListener('pointermove',e=>{const[x,y]=evp(e);if(ptrs.has(e.pointerId))ptrs.set(e.pointerId,[x,y]);
+ if(pinch&&ptrs.size>=2){const m=pinchMid();S.zoom=clampZ(pinch.z0*m.d/pinch.d0);if(pinch.P)grab(pinch.P,m.x,m.y);dirty.view=true;return}
+ if(drag){const dx=x-drag.x,dy=y-drag.y;drag.moved=Math.max(drag.moved,Math.abs(dx)+Math.abs(dy));
+  if(!(drag.P&&grab(drag.P,x,y))){const r=radius()*RAD;S.lon0=drag.lon-dx/r;S.lat0=clampLat(drag.lat+dy/r);dirty.view=true}
+  track();return}
+ if(e.pointerType==='mouse'){const c=pick(x,y);if(c!==S.hover){S.hover=c;ovc.classList.toggle('hit',!!c);dirty.card=true;dirty.view=true}}});
+function endDrag(e){const[x,y]=evp(e);ptrs.delete(e.pointerId);
+ if(pinch){if(ptrs.size<2)pinch=null;if(ptrs.size===1){const v=[...ptrs.values()][0];startDrag(v[0],v[1]);drag.moved=99}else if(!ptrs.size){drag=null;ovc.classList.remove('drag')}return}
+ if(!drag)return;const d=drag;drag=null;ovc.classList.remove('drag');
+ if(d.moved<6){const c=pick(x,y),now=performance.now();
+  if(c){pin(S.pin===c?null:c);if(e.pointerType!=='mouse')fly(c)}
+  else if(e.pointerType!=='mouse'&&now-lastTap<320){zoomAnim(x,y,2);lastTap=0;return}
+  lastTap=now;return}
+ const h=d.hist,a=h[0],b=h[h.length-1],dt=(b[0]-a[0])/1000;   // fling: keep spinning, then slow down
+ if(!reduced&&dt>.015&&performance.now()-b[0]<80){const vl=(((b[1]-a[1]+540)%360)-180)/dt,va=(b[2]-a[2])/dt;const px=Math.hypot(vl,va)*radius()*RAD;if(px>220){const k=Math.min(1,1400/px);inert={vl:vl*k,va:va*k}}}}
+ovc.addEventListener('pointerup',endDrag);
+ovc.addEventListener('pointercancel',e=>{ptrs.delete(e.pointerId);if(ptrs.size<2)pinch=null;if(!ptrs.size){drag=null;ovc.classList.remove('drag')}});
 ovc.addEventListener('pointerleave',()=>{if(S.hover){S.hover=null;dirty.card=true;dirty.view=true;ovc.classList.remove('hit')}});
-ovc.addEventListener('wheel',e=>{if(innerWidth<=1180&&!e.ctrlKey)return;e.preventDefault();S.zoom=Math.max(1,Math.min(7,S.zoom*Math.exp(-e.deltaY*.0012)));dirty.view=true},{passive:false});
+ovc.addEventListener('wheel',e=>{e.preventDefault();const[x,y]=evp(e),dy=e.deltaMode===1?e.deltaY*16:e.deltaMode===2?e.deltaY*400:e.deltaY;inert=null;tween=null;zoomAt(x,y,Math.exp(-dy*(e.ctrlKey?.01:.0015)))},{passive:false});
+ovc.addEventListener('dblclick',e=>{const[x,y]=evp(e);if(!pick(x,y))zoomAnim(x,y,e.shiftKey?.5:2)});
+function stepInertia(dt){S.lon0=((S.lon0+inert.vl*dt+540)%360)-180;S.lat0=clampLat(S.lat0+inert.va*dt);const k=Math.exp(-dt*4.5);inert.vl*=k;inert.va*=k;dirty.view=true;if(Math.hypot(inert.vl,inert.va)*radius()*RAD<12)inert=null}
+$('zIn').onclick=()=>zoomAnim(CX,CY,1.6);$('zOut').onclick=()=>zoomAnim(CX,CY,1/1.6);
+$('zReset').onclick=()=>{inert=null;const z0=S.zoom,l0=S.lat0,t0=performance.now();if(reduced){S.zoom=1;S.lat0=18;dirty.view=true;return}tween=t=>{const u=Math.min(1,(t-t0)/450),e=u*u*(3-2*u);S.zoom=z0+(1-z0)*e;S.lat0=l0+(18-l0)*e;dirty.view=true;if(u>=1)tween=null}};
 addEventListener('keydown',e=>{if(e.key==='Escape'&&S.pin&&!$('notes').open)pin(null)});
 new ResizeObserver(resize).observe(stage);
 
@@ -288,6 +321,7 @@ new ResizeObserver(resize).observe(stage);
 let lastStats=0,lastT=performance.now();
 function frame(t){const dt=Math.min(.1,(t-lastT)/1000);lastT=t;
  if(tween)tween(t);
+ if(inert&&!drag)stepInertia(dt);
  if(S.play==='day')setTime(S.ms+dt*36e5*1.2);else if(S.play==='year')setTime(S.ms+dt*DAY*9);
  if(dirty.time&&t-lastStats>110){lastStats=t;dirty.time=false;recomputeWorld();renderWorld();renderClock();renderCard();drawChart();dirty.view=true}
  else if(dirty.card){dirty.card=false;renderCard()}

@@ -1,7 +1,8 @@
 <div id="app">
   <div id="stage">
     <canvas id="gl" aria-hidden="true"></canvas>
-    <canvas id="ov" role="img" aria-label="可拖动的地球仪。光点代表人口分布，亮面是此刻的白昼。把光标移到城市上查看详情，也可以用城市搜索框。"></canvas>
+    <canvas id="ov" role="img" aria-label="可拖动的地球仪。光点代表人口分布，亮面是此刻的白昼。拖动旋转，滚轮、双击或双指捏合缩放。把光标移到城市上查看详情，也可以用城市搜索框。"></canvas>
+    <div id="zoomCtl" role="group" aria-label="缩放地球"><button id="zIn" type="button" aria-label="放大" title="放大（也可以滚轮、双击或双指捏合）">+</button><button id="zOut" type="button" aria-label="缩小" title="缩小">−</button><button id="zReset" type="button" aria-label="复位视角" title="复位视角">复位</button></div>
     <p id="nogl" hidden>这台设备无法显示三维地球。下面的时间控件、城市搜索和数据卡片仍然可以使用。</p>
   </div>
   <header id="head">

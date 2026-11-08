@@ -24,6 +24,10 @@ button,select,input{font:inherit;color:inherit}
 #ov{cursor:grab;touch-action:none}
 #ov.drag{cursor:grabbing}
 #ov.hit{cursor:pointer}
+#zoomCtl{position:absolute;right:404px;bottom:14px;display:flex;flex-direction:column;gap:4px;z-index:2}
+#zoomCtl button{width:34px;height:34px;padding:0;background:var(--panel);border:1px solid var(--rule);border-radius:3px;color:var(--paper);font-size:19px;line-height:1;cursor:pointer}
+#zoomCtl button:hover{border-color:var(--sun)}
+#zoomCtl #zReset{font-size:11.5px}
 #head{position:absolute;left:max(24px,env(safe-area-inset-left,0px));top:18px;width:330px;pointer-events:none}
 h1{font-family:var(--serif);font-weight:900;font-size:30px;line-height:1.16;letter-spacing:.01em;margin:0;text-wrap:balance}
 #head p{margin:6px 0 0;color:var(--mute);font-size:13px}
@@ -127,7 +131,7 @@ h1{font-family:var(--serif);font-weight:900;font-size:30px;line-height:1.16;lett
   #top{order:2;flex-wrap:wrap}
   #modes{flex:1 1 100%}#modes button{flex:1}
   #stage{order:3;position:relative;height:min(92vw,520px);margin-left:calc(-1*max(16px,env(safe-area-inset-left,0px)));margin-right:calc(-1*max(16px,env(safe-area-inset-right,0px)))}
-  #ov{touch-action:pan-y}
+  #zoomCtl{right:max(12px,env(safe-area-inset-right,0px));bottom:12px}
   #dock{order:4;display:flex;flex-direction:column;height:auto;background:none;border:0;padding:0;gap:10px}
   #chartW{height:170px}
   #card{order:5;overflow:visible;box-shadow:none}
